@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Impression",
+  "type": "object",
+  "required": ["impression_id", "request_id", "user_id", "item_id", "model_version", "rank", "timestamp"],
+  "properties": {
+    "impression_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1},
+    "user_id": {"type": "string", "minLength": 1},
+    "surface": {"type": "string"},
+    "row_id": {"type": ["string", "null"]},
+    "item_id": {"type": "string", "minLength": 1},
+    "model_version": {"type": "string", "minLength": 1},
+    "rank": {"type": "integer", "minimum": 0},
+    "score": {"type": ["number", "null"]},
+    "timestamp": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": true
+}

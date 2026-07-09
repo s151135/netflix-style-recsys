@@ -1,0 +1,38 @@
+project:
+  name: netflix-style-recsys
+  random_seed: 42
+data:
+  interactions_path: data/interactions.parquet
+  items_path: data/items.parquet
+  min_user_events: 3
+  min_item_events: 2
+  positive_event_types: [click, play, complete, like, add_to_list]
+  event_weights:
+    impression: 0.05
+    click: 1.0
+    play: 2.0
+    complete: 4.0
+    like: 5.0
+    add_to_list: 3.0
+split:
+  holdout_per_user: 1
+retrieval:
+  model: bpr
+  latent_dim: 32
+  negatives_per_positive: 4
+  learning_rate: 0.03
+  regularization: 0.0001
+  epochs: 8
+ranking:
+  top_k: 20
+  candidate_multiplier: 20
+  freshness_half_life_days: 21
+  diversity_lambda: 0.20
+serving:
+  latency_budget_ms: 150
+  retrieval_budget_ms: 40
+  ranking_budget_ms: 80
+privacy:
+  pseudonymous_ids_only: true
+  raw_event_retention_days: 365
+  children_profile_feature_gate: true

@@ -1,0 +1,9 @@
+experiment:
+  name: recsys_candidate_vs_champion
+  assignment_unit: user_id
+  traffic_fraction: 0.10
+  guardrails:
+    max_p95_latency_ms: 150
+    max_error_rate: 0.01
+  primary_metrics: [play_start_rate, completion_rate, hours_viewed]
+  secondary_metrics: [catalogue_coverage, new_item_exposure, repeat_rate]

@@ -1,0 +1,17 @@
+extends: configs/base.yaml
+runtime:
+  device: cuda
+  batch_size: 4096
+  workers: 8
+retrieval:
+  model: two_tower
+  latent_dim: 128
+  epochs: 20
+ranking:
+  enable_xgboost: true
+sequential:
+  model: sasrec
+  max_seq_len: 100
+  hidden_dim: 128
+  layers: 2
+  heads: 4

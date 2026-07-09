@@ -1,0 +1,12 @@
+extends: configs/base.yaml
+runtime:
+  device: auto
+  batch_size: 512
+  workers: 2
+retrieval:
+  model: bpr
+  latent_dim: 32
+  epochs: 6
+serving:
+  max_candidates: 500
+  cache_ttl_seconds: 300

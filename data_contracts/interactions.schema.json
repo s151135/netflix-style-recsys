@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interaction",
+  "type": "object",
+  "required": ["event_id", "user_id", "item_id", "event_type", "timestamp"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "user_id": {"type": "string", "minLength": 1},
+    "session_id": {"type": ["string", "null"]},
+    "item_id": {"type": "string", "minLength": 1},
+    "event_type": {
+      "type": "string",
+      "enum": ["impression", "click", "play", "complete", "skip", "like", "dislike", "add_to_list"]
+    },
+    "timestamp": {"type": "string", "format": "date-time"},
+    "position": {"type": ["integer", "null"], "minimum": 0},
+    "watch_time_sec": {"type": ["number", "null"], "minimum": 0},
+    "completion_ratio": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "dwell_ms": {"type": ["number", "null"], "minimum": 0}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Item",
+  "type": "object",
+  "required": ["item_id", "title", "type"],
+  "properties": {
+    "item_id": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "type": {"type": "string", "enum": ["movie", "series", "episode", "short", "article"]},
+    "genres": {"type": "array", "items": {"type": "string"}},
+    "language": {"type": ["string", "null"]},
+    "release_year": {"type": ["integer", "null"]},
+    "duration_sec": {"type": ["integer", "null"], "minimum": 0},
+    "availability_start": {"type": ["string", "null"], "format": "date-time"},
+    "availability_end": {"type": ["string", "null"], "format": "date-time"},
+    "maturity_rating": {"type": ["string", "null"]},
+    "text_fields": {"type": ["string", "null"]},
+    "image_uri": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}
