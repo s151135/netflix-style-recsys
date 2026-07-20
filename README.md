@@ -50,6 +50,20 @@ Or run the local stack:
 docker compose up --build
 ```
 
+## Discovery UI
+
+The local UI at `http://127.0.0.1:8000` is a discovery experience, not a streaming player.
+It includes browse rails, film/series filters, title search, rich click-through information, and
+transparent recommendation reasons. The model blends local MovieLens collaborative signals with
+genre affinity, curated catalogue popularity, and a diversity reranker so that it can suggest both
+known movies and cold-start series.
+
+The behavioral data comes from [MovieLens latest small](https://grouplens.org/datasets/movielens/)
+and the display catalogue is a small curated metadata layer. Poster paths use the documented
+[TMDB image URL format](https://developer.themoviedb.org/docs/image-basics); production use should
+replace the local layer with a licensed metadata feed or a server-side TMDB integration and the
+required attribution.
+
 ## Repository Map
 
 - `configs/` - local Mac, GPU server, and experiment defaults.
