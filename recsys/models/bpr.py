@@ -34,18 +34,26 @@ class BPRMatrixFactorization:
         self.user_factors = rng.normal(0, 0.05, size=(n_users, f))
         self.item_factors = rng.normal(0, 0.05, size=(n_items, f))
         self.item_bias = np.zeros(n_items, dtype=float)
-        user_seen = user_seen or {}
+        user_seen = {u: set(items) for u, items in (user_seen or {}).items()}
+        for u, i in positive_pairs:
+            user_seen.setdefault(u, set()).add(i)
         pairs = list(positive_pairs)
         for _ in range(self.config.epochs):
             rng.shuffle(pairs)
             for u, i in pairs:
                 seen = user_seen.get(u, set())
+                if len(seen) >= n_items:
+                    continue
                 for _neg in range(self.config.negatives_per_positive):
                     j = int(rng.integers(0, n_items))
                     attempts = 0
                     while j in seen and attempts < 50:
                         j = int(rng.integers(0, n_items))
                         attempts += 1
+                    if j in seen:
+                        # Never treat a known positive as a negative after retries.
+                        unseen = np.array([idx for idx in range(n_items) if idx not in seen])
+                        j = int(rng.choice(unseen))
                     self._update(u, i, j)
         return self
 

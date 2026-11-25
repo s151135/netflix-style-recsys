@@ -1,0 +1,11 @@
+include README.md CHANGELOG.md THIRD_PARTY_NOTICES.md Makefile docker-compose.yml .dockerignore .env.example .gitattributes
+include requirements.lock requirements-dev.lock
+recursive-include recsys *.html *.js
+recursive-include scripts *.py *.sh
+recursive-include configs *.yaml
+recursive-include data_contracts *.json
+recursive-include docs *.md *.json *.jpg
+recursive-include notices *.txt
+recursive-include infra *
+include .github/workflows/ci.yml
+recursive-include tests *.py *.md

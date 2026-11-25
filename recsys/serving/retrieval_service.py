@@ -15,6 +15,7 @@ class RetrievalService:
         item_bias: np.ndarray,
         users: list[str],
         items: list[str],
+        metadata: dict | None = None,
     ) -> None:
         self.user_factors = user_factors
         self.item_factors = item_factors
@@ -22,6 +23,8 @@ class RetrievalService:
         self.users = users
         self.items = items
         self.user_to_index = {u: i for i, u in enumerate(users)}
+        self.metadata = metadata or {}
+        self.popularity_scores: np.ndarray | None = None
 
     @classmethod
     def load(cls, path: str | Path) -> "RetrievalService":
@@ -32,6 +35,7 @@ class RetrievalService:
             artifact["item_bias"],
             artifact["users"],
             artifact["items"],
+            artifact["metadata"],
         )
 
     def get_candidates(
@@ -51,20 +55,22 @@ class RetrievalService:
             item_id = self.items[int(idx)]
             if item_id in exclude_item_ids:
                 continue
-            rows.append({"item_id": item_id, "retrieval_score": float(scores[int(idx)])})
+            rows.append({"item_id": item_id, "retrieval_score": float(scores[int(idx)]),
+                         "source": "collaborative"})
             if len(rows) >= k:
                 break
         return rows
 
     def _popular_fallback(self, k: int, exclude_item_ids: set[str]) -> list[dict[str, float | str]]:
-        scores = self.item_bias
+        scores = self.popularity_scores if self.popularity_scores is not None else self.item_bias
         order = scores.argsort()[::-1]
         rows = []
         for idx in order:
             item_id = self.items[int(idx)]
             if item_id in exclude_item_ids:
                 continue
-            rows.append({"item_id": item_id, "retrieval_score": float(scores[int(idx)])})
+            rows.append({"item_id": item_id, "retrieval_score": float(scores[int(idx)]),
+                         "source": "popularity" if self.popularity_scores is not None else "model_bias"})
             if len(rows) >= k:
                 break
         return rows

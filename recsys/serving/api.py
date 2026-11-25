@@ -2,31 +2,68 @@ from __future__ import annotations
 
 import os
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, Literal
 
+import numpy as np
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 try:
-    from fastapi import FastAPI, HTTPException
-    from fastapi.responses import HTMLResponse
+    from fastapi import FastAPI, HTTPException, Query
+    from fastapi.responses import HTMLResponse, JSONResponse, Response
 except Exception as exc:  # pragma: no cover
     raise RuntimeError("Install serving dependencies with `python -m pip install -e .`") from exc
 
 from recsys.monitoring.metrics import record_recommendation_request
-from recsys.serving.catalog import curated_item_ids, enrich_catalogue_items
+from recsys import __version__
+from recsys.serving.catalog import enrich_catalogue_items
 from recsys.serving.ranking_service import RankingService
 from recsys.serving.retrieval_service import RetrievalService
 
 
-app = FastAPI(title="netflix-style-recsys", version="0.1.0")
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    startup()
+    yield
+
+
+app = FastAPI(title="Netflix AI Recommendation System", version=__version__, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def response_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if request.url.path == "/":
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https://image.tmdb.org; connect-src 'self'; "
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        )
+    return response
+
+
+ItemID = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+
+
+class RecommendContext(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    seen_item_ids: list[ItemID] = Field(default_factory=list, max_length=1000)
+    blocked_item_ids: list[ItemID] = Field(default_factory=list, max_length=1000)
+    surface: Literal["reelfind_home", "api", "unknown"] = "api"
+    is_kids_profile: bool = False
 
 
 class RecommendRequest(BaseModel):
-    user_id: str
-    session_id: str | None = None
-    context: dict[str, Any] = Field(default_factory=dict)
+    model_config = ConfigDict(extra="forbid")
+    user_id: ItemID
+    session_id: ItemID | None = None
+    context: RecommendContext = Field(default_factory=RecommendContext)
     k: int = Field(default=20, ge=1, le=100)
 
 
@@ -34,6 +71,7 @@ class RecommendResponse(BaseModel):
     user_id: str
     items: list[dict[str, Any]]
     latency_ms: float
+    mode: str
 
 
 def _artifact_dir() -> Path:
@@ -54,7 +92,6 @@ def _load_interactions() -> pd.DataFrame:
     return pd.DataFrame(columns=["user_id", "item_id", "rating", "timestamp"])
 
 
-@app.on_event("startup")
 def startup() -> None:
     artifact = _artifact_dir()
     items = _load_items()
@@ -63,11 +100,44 @@ def startup() -> None:
     app.state.items = items
     app.state.interactions = interactions
     app.state.ranking = RankingService(items=items)
+    if app.state.retrieval is not None:
+        threshold = app.state.retrieval.metadata.get("rating_threshold", 4.0)
+        positive = interactions
+        if "rating" in positive:
+            positive = positive[positive["rating"] >= threshold]
+        counts = positive.groupby("item_id").size().to_dict()
+        app.state.retrieval.popularity_scores = np.array([
+            counts.get(item, 0) for item in app.state.retrieval.items
+        ], dtype=float)
 
 
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/readyz")
+def readyz():
+    ready = getattr(app.state, "retrieval", None) is not None
+    return JSONResponse({"status": "ready" if ready else "not_ready"}, status_code=200 if ready else 503)
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return Response(generate_latest(), headers={"Content-Type": CONTENT_TYPE_LATEST})
+
+
+@app.get("/model-info")
+def model_info() -> dict[str, Any]:
+    retrieval = getattr(app.state, "retrieval", None)
+    if retrieval is None:
+        return {"ready": False}
+    return {"ready": True, "model": "BPR collaborative filtering",
+            "validation_selected": retrieval.metadata.get("validation_selected", False),
+            "remote_artwork": os.getenv("RECSYS_ENABLE_REMOTE_ARTWORK", "0") == "1",
+            "factors": int(retrieval.item_factors.shape[1]),
+            "users": len(retrieval.users), "items": len(retrieval.items),
+            "rating_threshold": retrieval.metadata.get("rating_threshold", 4.0)}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -76,8 +146,13 @@ def demo_ui() -> str:
     return html_path.read_text()
 
 
+@app.get("/assets/demo.js", include_in_schema=False)
+def demo_script():
+    return Response(Path(__file__).with_name("demo.js").read_text(), media_type="text/javascript")
+
+
 @app.get("/sample-users")
-def sample_users(limit: int = 12) -> dict[str, list[str]]:
+def sample_users(limit: Annotated[int, Query(ge=1, le=50)] = 12) -> dict[str, list[str]]:
     retrieval = getattr(app.state, "retrieval", None)
     if retrieval is None:
         return {"users": []}
@@ -86,38 +161,11 @@ def sample_users(limit: int = 12) -> dict[str, list[str]]:
 
 @app.get("/profile/{user_id}")
 def profile(user_id: str) -> dict[str, Any]:
-    interactions = getattr(app.state, "interactions", pd.DataFrame())
-    items = getattr(app.state, "items", pd.DataFrame())
-    if interactions.empty:
-        return {"user_id": user_id, "history": [], "top_genres": []}
-    user_rows = interactions[interactions["user_id"] == user_id].copy()
-    if user_rows.empty:
-        return {"user_id": user_id, "history": [], "top_genres": []}
-    user_rows["timestamp"] = pd.to_datetime(user_rows["timestamp"], utc=True, errors="coerce")
-    merged = user_rows.merge(items, on="item_id", how="left").sort_values(
-        ["rating", "timestamp"], ascending=[False, False]
-    )
-    history = [
-        _display_item(row)
-        | {
-            "rating": float(getattr(row, "rating", 0.0) or 0.0),
-            "event_type": str(getattr(row, "event_type", "")),
-        }
-        for row in merged.head(12).itertuples(index=False)
-    ]
-    genre_counts: dict[str, int] = {}
-    for genres in merged.head(50)["genres"]:
-        for genre in _normalise_genres(genres):
-            genre_counts[genre] = genre_counts.get(genre, 0) + 1
-    top_genres = [
-        {"genre": genre, "count": count}
-        for genre, count in sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-    ]
-    return {"user_id": user_id, "history": history, "top_genres": top_genres}
+    return _profile_data(user_id)
 
 
 @app.get("/browse-rows")
-def browse_rows(limit: int = 18) -> dict[str, Any]:
+def browse_rows(limit: Annotated[int, Query(ge=1, le=30)] = 18) -> dict[str, Any]:
     items = getattr(app.state, "items", pd.DataFrame())
     if items.empty:
         return {"rows": []}
@@ -146,15 +194,20 @@ def browse_rows(limit: int = 18) -> dict[str, Any]:
 
 
 @app.get("/catalog")
-def catalog(query: str = "", media_type: str = "all", genre: str = "", limit: int = 48) -> dict[str, Any]:
+def catalog(
+    query: Annotated[str, Query(max_length=200)] = "",
+    media_type: Literal["all", "movie", "series"] = "all",
+    genre: Annotated[str, Query(max_length=64)] = "",
+    limit: Annotated[int, Query(ge=1, le=80)] = 48,
+) -> dict[str, Any]:
     items = getattr(app.state, "items", pd.DataFrame())
     if items.empty:
         return {"items": []}
-    displayed = items[items.get("poster_url").notna()].copy()
+    displayed = items.copy()
     if media_type in {"movie", "series"}:
         displayed = displayed[displayed["type"] == media_type]
     if query:
-        displayed = displayed[displayed["title"].str.contains(query, case=False, na=False)]
+        displayed = displayed[displayed["title"].str.contains(query, case=False, na=False, regex=False)]
     if genre:
         displayed = displayed[displayed["genres"].apply(lambda values: genre in _normalise_genres(values))]
     return {"items": _items_to_display(displayed.sort_values("popularity", ascending=False).head(max(1, min(limit, 80))))}
@@ -188,21 +241,20 @@ def recommend(req: RecommendRequest) -> RecommendResponse:
     started = time.perf_counter()
     if app.state.retrieval is None:
         raise HTTPException(status_code=503, detail="No model artifact available. Run scripts/train_local.py")
-    context = dict(req.context)
+    context = req.context.model_dump()
     interactions = getattr(app.state, "interactions", pd.DataFrame())
     history = interactions[interactions["user_id"] == req.user_id] if not interactions.empty else pd.DataFrame()
-    excluded = set(req.context.get("seen_item_ids", [])) | set(history.get("item_id", []))
+    excluded = set(context["seen_item_ids"]) | set(context["blocked_item_ids"]) | set(history.get("item_id", []))
     profile = _profile_data(req.user_id)
     context["preferred_genres"] = [entry["genre"] for entry in profile["top_genres"]]
     if profile["history"]:
         context["anchor_title"] = profile["history"][0]["title"]
     candidates = app.state.retrieval.get_candidates(
         user_id=req.user_id,
-        k=max(req.k * 20, 200),
+        k=min(max(req.k * 5, 200), 500),
         exclude_item_ids=excluded,
     )
-    candidates = [row for row in candidates if row["item_id"] in curated_item_ids(app.state.items)]
-    candidates.extend(_content_candidates(app.state.items, excluded, context))
+    candidates.extend(_content_candidates(app.state.items, excluded))
     candidates = _dedupe_candidates(candidates)
     ranked = app.state.ranking.rank(
         candidates,
@@ -211,7 +263,8 @@ def recommend(req: RecommendRequest) -> RecommendResponse:
     )
     latency_ms = (time.perf_counter() - started) * 1000
     record_recommendation_request(surface=str(context.get("surface", "unknown")), latency_ms=latency_ms)
-    return RecommendResponse(user_id=req.user_id, items=ranked, latency_ms=latency_ms)
+    mode = "personalized" if req.user_id in app.state.retrieval.user_to_index else "cold_start"
+    return RecommendResponse(user_id=req.user_id, items=ranked, latency_ms=latency_ms, mode=mode)
 
 
 def _items_to_display(items: pd.DataFrame) -> list[dict[str, Any]]:
@@ -268,32 +321,50 @@ def _optional_text(value) -> str | None:
 def _profile_data(user_id: str) -> dict[str, Any]:
     interactions = getattr(app.state, "interactions", pd.DataFrame())
     items = getattr(app.state, "items", pd.DataFrame())
+    retrieval = getattr(app.state, "retrieval", None)
+    threshold = retrieval.metadata.get("rating_threshold", 4.0) if retrieval else 4.0
+    result = {"user_id": user_id, "history": [], "top_genres": [],
+              "observed_count": 0, "positive_count": 0, "genre_sample_size": 0,
+              "rating_threshold": threshold,
+              "has_learned_profile": bool(retrieval and user_id in retrieval.user_to_index)}
     if interactions.empty:
-        return {"user_id": user_id, "history": [], "top_genres": []}
+        return result
     user_rows = interactions[interactions["user_id"] == user_id].copy()
+    result["observed_count"] = len(user_rows)
+    if "rating" not in user_rows:
+        return result
+    user_rows = user_rows[user_rows["rating"] >= threshold]
+    result["positive_count"] = len(user_rows)
     if user_rows.empty:
-        return {"user_id": user_id, "history": [], "top_genres": []}
+        return result
     user_rows["timestamp"] = pd.to_datetime(user_rows["timestamp"], utc=True, errors="coerce")
-    merged = user_rows.merge(items, on="item_id", how="left").sort_values(["rating", "timestamp"], ascending=[False, False])
-    history = [_display_item(row) | {"rating": float(getattr(row, "rating", 0.0) or 0.0), "event_type": str(getattr(row, "event_type", ""))} for row in merged.head(12).itertuples(index=False)]
+    merged = user_rows.merge(items, on="item_id", how="left").sort_values(
+        ["rating", "timestamp", "item_id"], ascending=[False, False, True]
+    )
+    result["history"] = [
+        _display_item(row) | {"rating": float(row.rating), "event_type": str(row.event_type)}
+        for row in merged.head(12).itertuples(index=False)
+    ]
+    sample = merged.head(50)
+    result["genre_sample_size"] = len(sample)
     genre_counts: dict[str, int] = {}
-    for genres in merged.head(50)["genres"]:
+    for genres in sample["genres"]:
         for genre in _normalise_genres(genres):
             genre_counts[genre] = genre_counts.get(genre, 0) + 1
-    top_genres = [{"genre": genre, "count": count} for genre, count in sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:5]]
-    return {"user_id": user_id, "history": history, "top_genres": top_genres}
+    result["top_genres"] = [
+        {"genre": genre, "count": count}
+        for genre, count in sorted(genre_counts.items(), key=lambda x: (-x[1], x[0]))[:5]
+    ]
+    return result
 
 
-def _content_candidates(items: pd.DataFrame, excluded: set[str], context: dict[str, Any]) -> list[dict[str, float | str]]:
-    preferred = set(context.get("preferred_genres", []))
+def _content_candidates(items: pd.DataFrame, excluded: set[str]) -> list[dict[str, float | str]]:
     candidates = []
     for row in items[items.get("poster_url").notna()].itertuples(index=False):
         item_id = str(row.item_id)
         if item_id in excluded:
             continue
-        overlap = len(preferred.intersection(_normalise_genres(getattr(row, "genres", []))))
-        score = 0.35 + (0.45 * overlap / max(1, len(preferred))) + (float(getattr(row, "popularity", 0) or 0) / 400)
-        candidates.append({"item_id": item_id, "retrieval_score": score})
+        candidates.append({"item_id": item_id, "retrieval_score": 0.0, "source": "content"})
     return candidates
 
 
@@ -301,6 +372,6 @@ def _dedupe_candidates(candidates: list[dict[str, float | str]]) -> list[dict[st
     best: dict[str, dict[str, float | str]] = {}
     for candidate in candidates:
         item_id = str(candidate["item_id"])
-        if item_id not in best or float(candidate["retrieval_score"]) > float(best[item_id]["retrieval_score"]):
+        if item_id not in best:
             best[item_id] = candidate
     return list(best.values())

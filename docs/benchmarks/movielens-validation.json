@@ -1,0 +1,168 @@
+{
+  "environment": {
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.12.14"
+  },
+  "protocol": {
+    "dataset_sha256": "839b8c3d9f5be78e97e37f13b13e9e10d459fffed33e0bbf5486d9802bc7fe00",
+    "final_train_events": 100226,
+    "k": 10,
+    "limitations": [
+      "Per-user chronology is not a global time cutoff; timestamp ties use item ID.",
+      "One seed and one split; differences do not establish statistical significance.",
+      "Cold-start targets remain as misses; unknown users use training popularity.",
+      "Offline retrieval only; excludes curated UI and reranking quality.",
+      "This dataset was explored previously; use a new dataset for an external confirmation."
+    ],
+    "rating_threshold": 4.0,
+    "selection_metric": "validation bpr ndcg",
+    "split": "per-user last event test, penultimate validation; fewer than 3 events train-only",
+    "test_events": 610,
+    "tie_break": "first configuration",
+    "train_events": 99616,
+    "validation_events": 610
+  },
+  "selected_config": {
+    "epochs": 5,
+    "factors": 16,
+    "learning_rate": 0.03,
+    "negatives_per_positive": 2,
+    "regularization": 0.0001,
+    "seed": 42
+  },
+  "selected_trial": 1,
+  "test": {
+    "bpr": {
+      "catalogue_coverage": 0.01593625498007968,
+      "mrr": 0.02507808154708424,
+      "ndcg": 0.03372578412568865,
+      "recall": 0.06199460916442048,
+      "users": 371.0
+    },
+    "counts": {
+      "already_seen_targets": 0,
+      "candidate_items": 6275,
+      "cold_start_targets": 23,
+      "cold_start_users": 0,
+      "evaluated_users": 371,
+      "holdout_events": 610,
+      "positive_holdout_events": 371
+    },
+    "popularity": {
+      "catalogue_coverage": 0.014820717131474103,
+      "mrr": 0.021749454498780647,
+      "ndcg": 0.029439078501227057,
+      "recall": 0.05390835579514825,
+      "users": 371.0
+    }
+  },
+  "trials": [
+    {
+      "config": {
+        "epochs": 5,
+        "factors": 16,
+        "learning_rate": 0.03,
+        "negatives_per_positive": 2,
+        "regularization": 0.0001,
+        "seed": 42
+      },
+      "validation": {
+        "bpr": {
+          "catalogue_coverage": 0.014872861026707181,
+          "mrr": 0.020781368102796675,
+          "ndcg": 0.030207302305561397,
+          "recall": 0.0625,
+          "users": 336.0
+        },
+        "counts": {
+          "already_seen_targets": 0,
+          "candidate_items": 6253,
+          "cold_start_targets": 22,
+          "cold_start_users": 0,
+          "evaluated_users": 336,
+          "holdout_events": 610,
+          "positive_holdout_events": 336
+        },
+        "popularity": {
+          "catalogue_coverage": 0.014233168079321925,
+          "mrr": 0.02090537603930461,
+          "ndcg": 0.03122441044436885,
+          "recall": 0.06547619047619048,
+          "users": 336.0
+        }
+      }
+    },
+    {
+      "config": {
+        "epochs": 10,
+        "factors": 32,
+        "learning_rate": 0.03,
+        "negatives_per_positive": 2,
+        "regularization": 0.0001,
+        "seed": 42
+      },
+      "validation": {
+        "bpr": {
+          "catalogue_coverage": 0.036622421237805854,
+          "mrr": 0.018090986394557824,
+          "ndcg": 0.02630116527078099,
+          "recall": 0.05357142857142857,
+          "users": 336.0
+        },
+        "counts": {
+          "already_seen_targets": 0,
+          "candidate_items": 6253,
+          "cold_start_targets": 22,
+          "cold_start_users": 0,
+          "evaluated_users": 336,
+          "holdout_events": 610,
+          "positive_holdout_events": 336
+        },
+        "popularity": {
+          "catalogue_coverage": 0.014233168079321925,
+          "mrr": 0.02090537603930461,
+          "ndcg": 0.03122441044436885,
+          "recall": 0.06547619047619048,
+          "users": 336.0
+        }
+      }
+    },
+    {
+      "config": {
+        "epochs": 20,
+        "factors": 32,
+        "learning_rate": 0.01,
+        "negatives_per_positive": 2,
+        "regularization": 0.001,
+        "seed": 42
+      },
+      "validation": {
+        "bpr": {
+          "catalogue_coverage": 0.02254917639533024,
+          "mrr": 0.02105654761904762,
+          "ndcg": 0.02993780167490743,
+          "recall": 0.05952380952380952,
+          "users": 336.0
+        },
+        "counts": {
+          "already_seen_targets": 0,
+          "candidate_items": 6253,
+          "cold_start_targets": 22,
+          "cold_start_users": 0,
+          "evaluated_users": 336,
+          "holdout_events": 610,
+          "positive_holdout_events": 336
+        },
+        "popularity": {
+          "catalogue_coverage": 0.014233168079321925,
+          "mrr": 0.02090537603930461,
+          "ndcg": 0.03122441044436885,
+          "recall": 0.06547619047619048,
+          "users": 336.0
+        }
+      }
+    }
+  ]
+}
