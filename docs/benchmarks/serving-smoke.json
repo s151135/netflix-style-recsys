@@ -1,0 +1,15 @@
+{
+  "elapsed_seconds": 1.282797332998598,
+  "error_types": [],
+  "failed": 0,
+  "p50_ms": 128.87162499828264,
+  "p95_ms": 151.87208299903432,
+  "p99_ms": 164.08291600237135,
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.12.14",
+  "requests": 40,
+  "scope": "Small local HTTP measurement; no production capacity or latency guarantee",
+  "successful": 40,
+  "timestamp_utc": "2026-11-25T21:27:45.260151+00:00",
+  "workers": 4
+}

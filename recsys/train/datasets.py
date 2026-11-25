@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.request import urlretrieve
+from urllib.request import urlopen
+import shutil
+import tempfile
 from zipfile import ZipFile
 
 import numpy as np
@@ -105,9 +107,32 @@ def prepare_movielens_small(root: str | Path = "work/ml-latest-small") -> Path:
     root_path.parent.mkdir(parents=True, exist_ok=True)
     zip_path = root_path.parent / "ml-latest-small.zip"
     if not zip_path.exists():
-        urlretrieve(MOVIELENS_SMALL_URL, zip_path)
+        partial = zip_path.with_suffix(".zip.part")
+        try:
+            with urlopen(MOVIELENS_SMALL_URL, timeout=30) as response, partial.open("wb") as target:
+                shutil.copyfileobj(response, target)
+            with ZipFile(partial) as archive:
+                if archive.testzip() is not None:
+                    raise ValueError("MovieLens download failed its integrity check")
+            partial.replace(zip_path)
+        finally:
+            partial.unlink(missing_ok=True)
+    # Copy only known files into the requested directory. Never trust archive paths.
     with ZipFile(zip_path) as archive:
-        archive.extractall(root_path.parent)
+        for name in ["ratings.csv", "movies.csv", "links.csv", "README.txt"]:
+            member = archive.getinfo(f"ml-latest-small/{name}")
+            if member.file_size > 50_000_000:
+                raise ValueError("Unexpected MovieLens archive member size")
+            root_path.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(dir=root_path, delete=False) as target:
+                staged = Path(target.name)
+                try:
+                    with archive.open(member) as source:
+                        shutil.copyfileobj(source, target)
+                    target.close()
+                    staged.replace(root_path / name)
+                finally:
+                    staged.unlink(missing_ok=True)
     return root_path
 
 

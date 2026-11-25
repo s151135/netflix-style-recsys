@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ReelFind - Personal Film Discovery</title>
+  <title>ReelFind | Netflix AI Recommendation System</title>
   <style>
     :root { color-scheme: dark; --ink:#f6f6f3; --muted:#a9a8a6; --bg:#101010; --surface:#191919; --line:#2d2d2d; --red:#e50914; --green:#54d17b; --shadow:0 15px 45px rgba(0,0,0,.42); }
     * { box-sizing:border-box; }
@@ -42,6 +42,20 @@
     .profile-note span { display:block; color:var(--muted); font-size:13px; margin-top:3px; }
     .taste { margin-left:auto; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
     .pill { color:#dededb; padding:5px 9px; border:1px solid #454545; border-radius:999px; font-size:12px; white-space:nowrap; }
+    .explanation { margin:0 clamp(18px,4vw,58px) 28px; color:#bbb; font-size:14px; line-height:1.6; }
+    .explanation summary { cursor:pointer; color:white; font-weight:700; }
+    .detail-reason { border-left:3px solid var(--green); padding-left:12px; color:#bdeac9; line-height:1.6; }
+    .hero-art:empty { background-color:#24151b; }
+    .taste-mode .main { margin-top:0; padding-top:24px; }
+    .taste-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 clamp(18px,4vw,58px) 24px; }
+    .taste-stat { border:1px solid var(--line); background:var(--surface); padding:18px; border-radius:6px; }
+    .taste-stat strong { display:block; font-size:24px; margin-bottom:4px; }
+    .taste-stat span { color:var(--muted); font-size:13px; }
+    .taste-copy { margin:0 clamp(18px,4vw,58px) 22px; color:var(--muted); line-height:1.6; max-width:760px; }
+    .genre-bars { display:grid; gap:12px; margin:0 clamp(18px,4vw,58px) 28px; max-width:680px; }
+    .genre-row { display:grid; grid-template-columns:105px 1fr 38px; gap:12px; align-items:center; font-size:13px; }
+    .genre-track { height:8px; border-radius:5px; background:#303030; overflow:hidden; }
+    .genre-fill { display:block; height:100%; background:var(--green); border-radius:5px; }
     .section { margin:0 0 32px; }
     .section-head { display:flex; align-items:baseline; justify-content:space-between; gap:14px; padding:0 clamp(18px,4vw,58px); margin-bottom:11px; }
     h2 { margin:0; font-size:20px; line-height:1.2; }
@@ -51,7 +65,7 @@
     .poster-wrap { position:relative; width:100%; aspect-ratio:2/3; overflow:hidden; background:#292929; border-radius:5px; box-shadow:0 3px 15px rgba(0,0,0,.25); transition:transform .18s ease,box-shadow .18s ease; }
     .title-card:hover .poster-wrap,.title-card:focus-visible .poster-wrap { transform:scale(1.045); box-shadow:var(--shadow); z-index:2; }
     .poster { width:100%; height:100%; object-fit:cover; display:block; }
-    .poster-fallback { width:100%; height:100%; display:grid; align-content:end; padding:14px; background:linear-gradient(145deg,#722128,#141414 70%); font-size:19px; font-weight:900; line-height:1.03; }
+    .poster-fallback { width:100%; height:100%; display:grid; align-content:end; padding:40px 12px 40px; background:linear-gradient(145deg,#722128,#141414 70%); font-size:17px; font-weight:900; line-height:1.03; }
     .badge { position:absolute; left:8px; top:8px; background:rgba(0,0,0,.78); color:white; border-radius:3px; padding:4px 6px; font-size:11px; font-weight:750; }
     .match { position:absolute; bottom:7px; left:8px; color:#84ef98; background:rgba(0,0,0,.74); padding:3px 5px; border-radius:3px; font-weight:800; font-size:11px; }
     .card-title { font-weight:750; font-size:13px; line-height:1.25; margin:9px 2px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -74,6 +88,11 @@
     .detail-grid { position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:44px; max-width:1120px; margin:-10px auto 0; padding:0 26px 58px; }
     .detail-side { color:#aaa; font-size:14px; line-height:1.55; }
     .detail-side strong { color:white; }
+    .app-status { margin:12px clamp(18px,4vw,58px); padding:12px 16px; background:#252121; border-left:3px solid var(--red); line-height:1.5; }
+    .credits { border-top:1px solid var(--line); padding:24px clamp(18px,4vw,58px); color:var(--muted); font-size:12px; line-height:1.6; }
+    .credits a { color:#e3e3e3; text-underline-offset:3px; }
+    .poster-fallback { overflow:hidden; }
+    .poster-fallback span { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:6; overflow:hidden; }
     .hidden { display:none !important; }
     @media (max-width:760px) { .topbar{height:auto; padding-top:13px; padding-bottom:13px; flex-wrap:wrap; gap:12px 18px;} .nav{order:3;width:100%;gap:16px;overflow:auto;} .tools{margin-left:auto;} .search{width:145px;} .profile{max-width:132px;} .hero{min-height:570px;padding-top:105px;padding-bottom:70px;} .hero-shade{background:linear-gradient(90deg,rgba(16,16,16,.91),rgba(16,16,16,.3)),linear-gradient(0deg,#101010,transparent 60%);} .profile-note{align-items:flex-start;flex-direction:column;gap:12px;} .taste{margin-left:0;justify-content:flex-start;} .rail{grid-auto-columns:145px;} .detail-hero{min-height:570px;padding:110px 25px 55px;} .detail-grid{grid-template-columns:1fr;gap:22px;padding:0 20px 45px;} }
   </style>
@@ -88,10 +107,11 @@
       <button data-view="taste">My taste</button>
     </nav>
     <div class="tools">
-      <label class="search" aria-label="Search titles"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Titles, people, genres" /></label>
+      <label class="search" aria-label="Search titles"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search titles" /></label>
       <select class="profile" id="user" aria-label="Recommendation profile"></select>
     </div>
   </header>
+  <p id="status" role="status" aria-live="polite" class="app-status" hidden></p>
   <main>
     <section class="hero" id="hero">
       <div class="hero-art" id="heroArt"></div><div class="hero-shade"></div>
@@ -108,6 +128,8 @@
         <div><strong id="profileHeading">Your taste profile</strong><span id="profileReason">Learning from ratings you gave to movies.</span></div>
         <div class="taste" id="tastePills"></div>
       </section>
+      <details class="explanation"><summary>How these picks work</summary><p id="modelNote">Learning preferences from movie ratings.</p><p>Learned picks use patterns in your positive ratings. Genre discoveries include newer films and series outside the model catalogue. Ordering also considers popularity and variety.</p></details>
+      <section id="tasteView" class="hidden" aria-label="Your taste profile"></section>
       <div id="homeView"></div>
       <section id="catalogView" class="hidden">
         <div class="section-head"><h2 id="catalogTitle">Browse titles</h2><span class="section-caption" id="catalogCount"></span></div>
@@ -116,33 +138,12 @@
       </section>
     </div>
   </main>
+  <footer class="credits"><strong>Netflix AI Recommendation System · v1.0.0</strong><p>Educational portfolio demo. MovieLens ratings from <a href="https://grouplens.org/datasets/movielens/">GroupLens</a>. Not affiliated with Netflix or GroupLens.</p><p>Optional artwork references: <a href="https://www.themoviedb.org/">TMDB</a>. Artwork is disabled by default. <a href="https://github.com/s151135/netflix-style-recsys">Source code and evaluation</a></p></footer>
   <section class="detail" id="detail" aria-modal="true" role="dialog" aria-label="Title information">
     <button class="detail-close" id="detailClose" aria-label="Close details">×</button>
-    <div class="detail-hero"><div class="detail-art" id="detailArt"></div><div class="detail-shade"></div><div class="detail-copy"><div class="kicker" id="detailType"></div><h2 id="detailTitle"></h2><div class="hero-meta" id="detailMeta"></div><div class="detail-info" id="detailOverview"></div><div class="actions"><button class="primary" id="detailBack">Back to browsing</button></div></div></div>
+    <div class="detail-hero"><div class="detail-art" id="detailArt"></div><div class="detail-shade"></div><div class="detail-copy"><div class="kicker" id="detailType"></div><h2 id="detailTitle"></h2><div class="hero-meta" id="detailMeta"></div><div class="detail-info" id="detailOverview"></div><div class="detail-reason hidden" id="detailReason"></div><div class="actions"><button class="primary" id="detailBack">Back to browsing</button></div></div></div>
     <div class="detail-grid"><div><div class="section-head" style="padding:0;margin:0 0 12px"><h2>More like this</h2></div><div class="rail" id="related" style="padding-left:0;padding-right:0"></div></div><aside class="detail-side"><p><strong>Cast</strong><br><span id="detailCredits"></span></p><p><strong>Created by</strong><br><span id="detailCreator"></span></p><p><strong>Genres</strong><br><span id="detailGenres"></span></p></aside></div>
   </section>
-  <script>
-    const state = { users: [], profile: null, recommendations: [], currentView: "home", currentType: "all", search: "", hero: null };
-    const $ = selector => document.querySelector(selector);
-    const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-    const icon = (symbol, label) => `<span aria-hidden="true">${symbol}</span><span>${esc(label)}</span>`;
-    function meta(item) { const bits = [item.release_year, item.maturity_rating, item.runtime || (item.seasons ? `${item.seasons} season${item.seasons === 1 ? "" : "s"}` : "")].filter(Boolean); return bits.join(" • "); }
-    function card(item) { const match = item.score ? `${Math.round(item.score * 100)}% match` : "Explore"; return `<button class="title-card" data-title-id="${esc(item.item_id)}" aria-label="View details for ${esc(item.title)}"><div class="poster-wrap">${item.poster_url ? `<img class="poster" loading="lazy" src="${esc(item.poster_url)}" alt="${esc(item.title)} poster" />` : `<div class="poster-fallback">${esc(item.title)}</div>`}<span class="badge">${item.type === "series" ? "SERIES" : "FILM"}</span><span class="match">${esc(match)}</span></div><div class="card-title">${esc(item.title)}</div><p class="card-meta">${esc(meta(item))}</p></button>`; }
-    async function request(url, options) { const response = await fetch(url, options); if (!response.ok) throw new Error("Could not load this part of the catalogue."); return response.json(); }
-    async function loadUsers() { const data = await request("/sample-users?limit=40"); state.users = data.users; $("#user").innerHTML = data.users.map((id, index) => `<option value="${esc(id)}">Profile ${index + 1}</option>`).join(""); }
-    async function loadProfile() { state.profile = await request(`/profile/${encodeURIComponent($("#user").value)}`); const genres = state.profile.top_genres || []; $("#tastePills").innerHTML = genres.map(item => `<span class="pill">${esc(item.genre)}</span>`).join("") || '<span class="pill">Building your taste</span>'; $("#profileHeading").textContent = `Profile ${Math.max(1, $("#user").selectedIndex + 1)} is into ${genres.slice(0,2).map(item => item.genre).join(" and ") || "great stories"}`; const history = state.profile.history || []; $("#profileReason").textContent = history.length ? `Recommendations are guided by highly rated titles such as ${history[0].title}.` : "Recommendations use catalogue similarity and community rating patterns."; }
-    async function loadRecommendations() { $("#refresh").disabled = true; await loadProfile(); const data = await request("/recommend", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:$("#user").value,k:18,context:{surface:"reelfind_home"}})}); state.recommendations = data.items; state.hero = data.items[0] || null; renderHero(); renderHome(); $("#refresh").disabled = false; }
-    function renderHero() { const item = state.hero; if (!item) return; $("#heroTitle").textContent = item.title; $("#heroKicker").textContent = `${Math.round(item.score * 100)}% match for this profile`; $("#heroMeta").textContent = `${meta(item)}${item.genres?.length ? ` • ${item.genres.slice(0,3).join(" • ")}` : ""}`; $("#heroDescription").textContent = item.reason || item.overview || "A tailored pick from your film and series profile."; $("#heroArt").style.backgroundImage = `url("${item.backdrop_url || item.poster_url || ""}")`; }
-    async function loadRows() { return request("/browse-rows?limit=18"); }
-    async function renderHome() { const browse = await loadRows(); const picks = { title:"Picked for your profile", caption:"Collaborative ratings + genre fit + diversity", items:state.recommendations }; const allRows = [picks, ...(browse.rows || [])]; $("#homeView").innerHTML = allRows.map(row => `<section class="section"><div class="section-head"><h2>${esc(row.title)}</h2><span class="section-caption">${esc(row.caption || "")}</span></div><div class="rail">${row.items.map(card).join("")}</div></section>`).join(""); }
-    async function loadCatalog() { const type = state.currentType === "all" ? "all" : state.currentType; const data = await request(`/catalog?media_type=${encodeURIComponent(type)}&query=${encodeURIComponent(state.search)}&limit=80`); const items = data.items || []; $("#catalog").innerHTML = items.length ? items.map(card).join("") : '<div class="empty">No titles found. Try a different search.</div>'; $("#catalogCount").textContent = `${items.length} titles`; }
-    function renderFilters() { const labels = [["all","All titles"],["movie","Films"],["series","Series"]]; $("#filters").innerHTML = labels.map(([value,label]) => `<button class="filter ${state.currentType === value ? "active" : ""}" data-filter="${value}">${label}</button>`).join(""); }
-    async function showView(view) { state.currentView = view; document.querySelectorAll(".nav button").forEach(button => button.classList.toggle("active", button.dataset.view === view)); const catalogue = $("#catalogView"); const home = $("#homeView"); const note = $("#profileNote"); if (view === "home") { catalogue.classList.add("hidden"); home.classList.remove("hidden"); note.classList.remove("hidden"); return; } home.classList.add("hidden"); catalogue.classList.remove("hidden"); state.currentType = view === "movies" ? "movie" : view === "series" ? "series" : "all"; $("#catalogTitle").textContent = view === "taste" ? "Your taste, expanded" : view === "movies" ? "Films" : "Series"; note.classList.toggle("hidden", view !== "taste"); renderFilters(); await loadCatalog(); }
-    async function showDetails(itemId) { const data = await request(`/title/${encodeURIComponent(itemId)}`); const item = data.item; $("#detailTitle").textContent = item.title; $("#detailType").textContent = `${item.type === "series" ? "Series" : "Film"}${data.tagline ? ` • ${data.tagline}` : ""}`; $("#detailMeta").textContent = `${meta(item)}${item.genres?.length ? ` • ${item.genres.join(" • ")}` : ""}`; $("#detailOverview").textContent = data.overview || item.overview || ""; $("#detailCredits").textContent = data.credits || "Details coming soon"; $("#detailCreator").textContent = data.creator || "Details coming soon"; $("#detailGenres").textContent = (item.genres || []).join(", "); $("#detailArt").style.backgroundImage = `url("${item.backdrop_url || item.poster_url || ""}")`; $("#related").innerHTML = (data.related || []).map(card).join(""); $("#detail").classList.add("open"); document.body.style.overflow = "hidden"; }
-    function closeDetails() { $("#detail").classList.remove("open"); document.body.style.overflow = ""; }
-    document.addEventListener("click", async event => { const cardEl = event.target.closest("[data-title-id]"); if (cardEl) return showDetails(cardEl.dataset.titleId); const navEl = event.target.closest("[data-view]"); if (navEl) return showView(navEl.dataset.view); const filterEl = event.target.closest("[data-filter]"); if (filterEl) { state.currentType = filterEl.dataset.filter; renderFilters(); return loadCatalog(); } });
-    $("#refresh").addEventListener("click", loadRecommendations); $("#heroDetails").addEventListener("click", () => state.hero && showDetails(state.hero.item_id)); $("#detailClose").addEventListener("click", closeDetails); $("#detailBack").addEventListener("click", closeDetails); $("#homeBrand").addEventListener("click", () => showView("home")); $("#user").addEventListener("change", loadRecommendations); $("#search").addEventListener("input", async event => { state.search = event.target.value.trim(); if (state.search || state.currentView !== "home") await showView(state.search ? "taste" : state.currentView); }); document.addEventListener("keydown", event => { if (event.key === "Escape") closeDetails(); });
-    (async function boot() { try { await loadUsers(); await loadRecommendations(); } catch (error) { $("#heroTitle").textContent = "The catalogue needs a moment"; $("#heroDescription").textContent = error.message; } })();
-  </script>
+  <script src="/assets/demo.js" defer></script>
 </body>
 </html>

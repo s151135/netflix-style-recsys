@@ -5,12 +5,16 @@ from collections.abc import Mapping, Sequence
 
 
 def recall_at_k(recommended: Sequence[str], relevant: set[str], k: int) -> float:
+    if k < 1:
+        raise ValueError("k must be >= 1")
     if not relevant:
         return 0.0
     return len(set(recommended[:k]).intersection(relevant)) / len(relevant)
 
 
 def mrr_at_k(recommended: Sequence[str], relevant: set[str], k: int) -> float:
+    if k < 1:
+        raise ValueError("k must be >= 1")
     for rank, item_id in enumerate(recommended[:k], start=1):
         if item_id in relevant:
             return 1.0 / rank
@@ -18,10 +22,14 @@ def mrr_at_k(recommended: Sequence[str], relevant: set[str], k: int) -> float:
 
 
 def ndcg_at_k(recommended: Sequence[str], relevant: set[str], k: int) -> float:
+    if k < 1:
+        raise ValueError("k must be >= 1")
     dcg = 0.0
+    counted = set()
     for rank, item_id in enumerate(recommended[:k], start=1):
-        if item_id in relevant:
+        if item_id in relevant and item_id not in counted:
             dcg += 1.0 / math.log2(rank + 1)
+            counted.add(item_id)
     ideal_hits = min(len(relevant), k)
     idcg = sum(1.0 / math.log2(rank + 1) for rank in range(1, ideal_hits + 1))
     return 0.0 if idcg == 0 else dcg / idcg
@@ -32,12 +40,14 @@ def evaluate_user_recommendations(
     holdout: Mapping[str, set[str]],
     k: int = 10,
 ) -> dict[str, float]:
-    users = [u for u in holdout if u in recommendations]
+    if k < 1:
+        raise ValueError("k must be >= 1")
+    users = [u for u in holdout if holdout[u]]
     if not users:
         return {"recall": 0.0, "mrr": 0.0, "ndcg": 0.0, "users": 0.0}
-    recalls = [recall_at_k(recommendations[u], holdout[u], k) for u in users]
-    mrrs = [mrr_at_k(recommendations[u], holdout[u], k) for u in users]
-    ndcgs = [ndcg_at_k(recommendations[u], holdout[u], k) for u in users]
+    recalls = [recall_at_k(recommendations.get(u, []), holdout[u], k) for u in users]
+    mrrs = [mrr_at_k(recommendations.get(u, []), holdout[u], k) for u in users]
+    ndcgs = [ndcg_at_k(recommendations.get(u, []), holdout[u], k) for u in users]
     return {
         "recall": sum(recalls) / len(recalls),
         "mrr": sum(mrrs) / len(mrrs),
