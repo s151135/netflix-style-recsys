@@ -18,4 +18,3 @@ class BPRSamplingTests(unittest.TestCase):
             model.fit(pairs, n_users=1, n_items=100)
         self.assertEqual(update.call_count, 99 * 2 * 4)
         self.assertTrue(all(call.args[2] == 99 for call in update.call_args_list))
-

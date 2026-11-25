@@ -87,4 +87,3 @@ The dataset had already been explored earlier in this project; this is a
 validation-selected experiment, not an independent external confirmation.
 Per-user chronology still permits information from other users' later events;
 a global time cutoff and repeated seeds are useful follow-up evaluations.
-

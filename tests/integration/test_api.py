@@ -147,4 +147,3 @@ class APITests(unittest.TestCase):
                 self.assertEqual(client.get("/readyz").status_code, 503)
                 self.assertFalse(client.get("/model-info").json()["ready"])
                 self.assertEqual(client.post("/recommend", json={"user_id": "new"}).status_code, 503)
-

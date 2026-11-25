@@ -34,4 +34,3 @@ class DeploymentTests(unittest.TestCase):
             changed.loc[0, "rating"] = 1.0
             with self.assertRaisesRegex(ValueError, "Dataset does not match"):
                 prepare_demo(changed, items, experiment, Path(tmp) / "wrong")
-

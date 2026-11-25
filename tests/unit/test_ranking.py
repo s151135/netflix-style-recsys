@@ -27,4 +27,3 @@ class RankingSignalTests(unittest.TestCase):
         self.assertEqual(by_id["c"]["signals"]["learned_preference"], 0.0)
         self.assertIn("not scored by the learned model", by_id["c"]["reason"])
         self.assertNotIn("interest in", by_id["c"]["reason"])
-

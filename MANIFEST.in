@@ -1,4 +1,4 @@
-include README.md CHANGELOG.md THIRD_PARTY_NOTICES.md Makefile docker-compose.yml .dockerignore .env.example
+include README.md CHANGELOG.md THIRD_PARTY_NOTICES.md Makefile docker-compose.yml .dockerignore .env.example .gitattributes
 include requirements.lock requirements-dev.lock
 recursive-include recsys *.html *.js
 recursive-include scripts *.py *.sh

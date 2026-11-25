@@ -57,4 +57,3 @@ class TuningTests(unittest.TestCase):
             self.assertEqual(report["trials"], second["trials"])
             self.assertEqual(report["selected_config"], second["selected_config"])
             self.assertEqual(second["test"]["counts"]["evaluated_users"], 0)
-

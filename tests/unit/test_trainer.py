@@ -29,4 +29,3 @@ class TrainerEvaluationTests(unittest.TestCase):
             self.assertEqual(report[model]["users"], 1)
             # u2 must receive a: its previously observed b must be excluded.
             self.assertEqual(report[model]["recall"], 1)
-
